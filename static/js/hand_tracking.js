@@ -13,31 +13,45 @@ let lastHandPosition = null;
 // 等待MediaPipe库加载完成
 async function waitForMediaPipe() {
     return new Promise((resolve, reject) => {
-        // 如果已经加载，直接返回
-        if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+        // 如果已经加载完成，直接返回
+        if (window.mediapipeLoaded && typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+            console.log('MediaPipe库已加载完成');
             resolve();
             return;
         }
         
+        let attempts = 0;
+        const maxAttempts = 300; // 30秒 (300 * 100ms)
+        
         const checkInterval = setInterval(() => {
+            attempts++;
+            
             // 检查MediaPipe类是否已加载
             if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
                 clearInterval(checkInterval);
+                console.log(`✅ MediaPipe库加载完成 (等待了 ${(attempts * 0.1).toFixed(1)} 秒)`);
                 resolve();
+                return;
             }
-        }, 50);
-        
-        // 设置超时，最多等待10秒
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            if (typeof Hands === 'undefined') {
-                reject(new Error('MediaPipe Hands 库加载超时，请检查网络连接。如果问题持续，请尝试刷新页面。'));
-            } else if (typeof Camera === 'undefined') {
-                reject(new Error('MediaPipe Camera 库加载超时，请检查网络连接。如果问题持续，请尝试刷新页面。'));
-            } else {
-                resolve();
+            
+            // 每50次尝试（5秒）输出一次日志
+            if (attempts % 50 === 0) {
+                console.log(`⏳ 等待MediaPipe库加载... (已等待 ${(attempts * 0.1).toFixed(1)} 秒)`);
             }
-        }, 10000);
+            
+            // 超时检查
+            if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                const errors = [];
+                if (typeof Hands === 'undefined') {
+                    errors.push('Hands');
+                }
+                if (typeof Camera === 'undefined') {
+                    errors.push('Camera');
+                }
+                reject(new Error(`MediaPipe库加载超时（${errors.join(', ')}未加载）。可能的原因：\n1. 网络连接问题\n2. CDN访问受限（jsdelivr/unpkg）\n3. 防火墙或代理设置\n\n解决方案：\n- 检查网络连接\n- 尝试刷新页面\n- 使用VPN或更换网络环境\n- 联系管理员检查服务器网络设置`));
+            }
+        }, 100); // 每100ms检查一次
     });
 }
 
@@ -73,9 +87,20 @@ async function initHandTracking() {
         
         // 初始化MediaPipe Hands
         showStatus('正在初始化手部识别...', 'info');
+        
+        // 根据使用的CDN确定资源路径
+        const cdnName = window.mediapipeCDN || 'jsdelivr';
+        let baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/';
+        
+        if (cdnName === 'unpkg') {
+            baseUrl = 'https://unpkg.com/@mediapipe/hands@0.4.1675469404/';
+        } else if (cdnName === 'cdnjs') {
+            baseUrl = 'https://cdnjs.cloudflare.com/ajax/libs/mediapipe-hands/0.4.1675469404/';
+        }
+        
         hands = new Hands({
             locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/${file}`;
+                return baseUrl + file;
             }
         });
         
