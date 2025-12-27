@@ -41,10 +41,13 @@ Thumbs.db
 # Project specific
 # 不再需要上传目录（图片存储在浏览器中）
 
-# MediaPipe库文件（文件较大，不提交到Git）
-static/lib/mediapipe/
-*.wasm
-*.tflite
-*.data
-*.binarypb
+# MediaPipe库文件
+# 如果需要提交到Git，请注释掉下面的行
+# static/lib/mediapipe/
+# *.wasm
+# *.tflite
+# *.data
+# *.binarypb
+
+# 注意：如果要将MediaPipe库提交到Git，请删除或注释掉上面的排除规则
 

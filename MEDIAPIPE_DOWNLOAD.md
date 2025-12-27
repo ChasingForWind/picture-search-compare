@@ -2,11 +2,55 @@
 
 ## 概述
 
-由于CDN访问可能受限（特别是在中国大陆），本应用支持使用本地MediaPipe库。下载后，应用将优先使用本地文件，无需依赖CDN。
+由于CDN访问可能受限（特别是在中国大陆），本应用支持使用**服务器本地**的MediaPipe库。
+
+**说明**：
+- **"本地"指服务器本地**：MediaPipe库文件存储在服务器的 `static/lib/mediapipe/` 目录中
+- **工作方式**：浏览器通过HTTP从您的服务器加载这些文件（类似从CDN加载，但源是您的服务器）
+- **优势**：不依赖外部CDN，即使CDN无法访问也能正常工作
+- **下载后**：应用将优先使用服务器本地文件，如果本地文件不存在才尝试从CDN加载
 
 ## 自动下载（推荐）
 
-### 方法1：使用Python脚本（最简单）
+### 方法1：Windows环境下载（开发环境推荐）
+
+如果您想在Windows开发环境下载，然后提交到Git，服务器拉取部署：
+
+**使用PowerShell脚本**：
+```powershell
+# 在项目根目录执行
+.\scripts\download_mediapipe_windows.ps1
+```
+
+**或使用批处理脚本**：
+```cmd
+# 双击运行，或在命令行执行
+.\scripts\download_mediapipe_windows.bat
+```
+
+**下载完成后提交到Git**：
+```bash
+# 1. 检查文件
+git status
+
+# 2. 添加文件（注意：.gitignore已经允许提交MediaPipe库）
+git add static/lib/mediapipe/
+
+# 3. 提交
+git commit -m "Add MediaPipe libraries for local serving"
+
+# 4. 推送到GitHub
+git push
+```
+
+**在服务器上拉取并部署**：
+```bash
+# 在服务器上
+git pull
+# 然后重新部署（使用docker-compose或您的部署脚本）
+```
+
+### 方法2：使用Python脚本（跨平台）
 
 ```bash
 # 进入项目目录
@@ -21,7 +65,7 @@ python scripts/download_mediapipe.py
 - 从多个CDN下载必要的文件
 - 如果某个CDN失败，自动尝试下一个
 
-### 方法2：在Docker容器中下载
+### 方法3：在Docker容器中下载
 
 如果您在服务器上使用Docker：
 
@@ -38,7 +82,30 @@ exit
 
 ## 手动下载
 
-如果自动脚本无法访问CDN，您可以手动下载文件：
+如果自动脚本无法访问CDN，您可以手动下载文件。
+
+**快速下载链接（可直接在浏览器打开）**：
+- 📄 [完整手动下载指南](MEDIAPIPE_MANUAL_DOWNLOAD.md) - 包含所有文件的直接下载链接
+
+**核心文件快速链接**：
+1. **hands.js** (~1.5 MB)
+   - https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/hands.js
+   - https://unpkg.com/@mediapipe/hands@0.4.1675469404/hands.js
+   
+2. **camera_utils.js** (~50 KB)
+   - https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js
+   - https://unpkg.com/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js
+
+3. **drawing_utils.js** (~30 KB)
+   - https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js
+   - https://unpkg.com/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js
+
+**下载方法**：
+- 点击链接，如果浏览器显示代码，按 `Ctrl+S` 保存
+- 或右键链接 → "链接另存为"
+- 保存到 `static/lib/mediapipe/` 目录
+
+### 手动下载详细步骤
 
 ### 需要下载的文件
 
@@ -186,11 +253,36 @@ static/
 
 总大小约 7-12 MB
 
+## 常见问题
+
+### Q: "本地"是指浏览器本地还是服务器本地？
+
+**A: 服务器本地**
+
+- **文件存储位置**：`服务器磁盘/static/lib/mediapipe/` 目录
+- **加载方式**：浏览器通过HTTP请求从您的服务器加载，URL类似：`http://您的域名/static/lib/mediapipe/hands.js`
+- **对比说明**：
+  - **CDN方式**：浏览器从外部CDN（jsdelivr/unpkg）加载 → `https://cdn.jsdelivr.net/...`
+  - **本地方式**：浏览器从您的服务器加载 → `http://您的服务器/static/lib/mediapipe/...`
+
+### Q: 为什么不是存储在浏览器本地？
+
+浏览器本地存储（如IndexedDB/LocalStorage）有限制：
+- 存储容量有限（通常几MB到几十MB）
+- MediaPipe库文件较大（约7-12MB）
+- 需要用户手动下载到浏览器不现实
+
+存储在服务器本地的优势：
+- ✅ 所有用户共享，只需下载一次
+- ✅ 通过服务器HTTP服务，加载速度快
+- ✅ 不依赖外部CDN，稳定可靠
+
 ## 注意事项
 
 1. **Git忽略**：这些文件已添加到 `.gitignore`，不会被提交到Git仓库
 2. **备份**：建议备份下载的库文件，避免重复下载
 3. **更新**：如果MediaPipe版本更新，需要重新下载相应版本的文件
+4. **存储位置**：文件存储在**服务器**上，不是在用户浏览器中
 
 ## 技术支持
 

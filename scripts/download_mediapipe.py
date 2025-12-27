@@ -11,11 +11,18 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-# 版本信息
+# 版本信息（使用最新版本，如果特定版本不存在）
 VERSIONS = {
-    'hands': '0.4.1675469404',
-    'camera_utils': '0.3.1675466867',
-    'drawing_utils': '0.3.1620248257'
+    'hands': '0.4.1675469404',  # 如果此版本不存在，会尝试 'latest' 或 '0.4'
+    'camera_utils': '0.3.1675466867',  # 如果此版本不存在，会尝试 'latest' 或 '0.3'
+    'drawing_utils': '0.3.1620248257'  # 如果此版本不存在，会尝试 'latest' 或 '0.3'
+}
+
+# 备用版本策略（如果指定版本不存在）
+FALLBACK_VERSIONS = {
+    'hands': ['latest', '0.4'],
+    'camera_utils': ['latest', '0.3'],
+    'drawing_utils': ['latest', '0.3']
 }
 
 # CDN地址（多个备选）
@@ -113,14 +120,22 @@ def download_mediapipe_libraries():
         target_path = target_dir / filename
         downloaded = False
         
-        # 尝试每个CDN
-        for cdn in CDN_SOURCES:
-            url = f"{cdn['base_url']}/{package}@{version}/{filename}"
-            print(f'  尝试从 {cdn["name"]} CDN 下载...')
+        # 尝试每个CDN，如果指定版本失败，尝试备用版本
+        versions_to_try = [version] + FALLBACK_VERSIONS.get(package, ['latest'])
+        
+        for try_version in versions_to_try:
+            for cdn in CDN_SOURCES:
+                url = f"{cdn['base_url']}/{package}@{try_version}/{filename}"
+                print(f'  尝试从 {cdn["name"]} CDN 下载 (版本: {try_version})...')
+                
+                if download_file(url, target_path):
+                    downloaded = True
+                    success_count += 1
+                    if try_version != version:
+                        print(f'  ⚠️ 使用了备用版本 {try_version} 替代 {version}')
+                    break
             
-            if download_file(url, target_path):
-                downloaded = True
-                success_count += 1
+            if downloaded:
                 break
         
         if not downloaded:
