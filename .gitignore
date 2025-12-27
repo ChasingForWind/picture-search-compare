@@ -39,7 +39,5 @@ instance/
 Thumbs.db
 
 # Project specific
-static/uploads/images/*
-!static/uploads/images/.gitkeep
-static/uploads/pairs.json
+# 不再需要上传目录（图片存储在浏览器中）
 

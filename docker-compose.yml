@@ -8,14 +8,17 @@ services:
     container_name: picture-search-app
     ports:
       - "5005:5000"  # 外部端口:容器内端口
-    volumes:
-      # 持久化上传的图片数据
-      - ./static/uploads:/app/static/uploads
     environment:
       - FLASK_APP=app
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - PYTHONUNBUFFERED=1
+      # OSS 配置（可选）
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID:-}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET:-}
+      - OSS_ENDPOINT=${OSS_ENDPOINT:-https://oss-cn-hangzhou.aliyuncs.com}
+      - OSS_BUCKET_NAME=${OSS_BUCKET_NAME:-}
+      - OSS_CDN_DOMAIN=${OSS_CDN_DOMAIN:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 5000), timeout=2)"]

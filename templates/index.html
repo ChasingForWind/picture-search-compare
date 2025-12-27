@@ -11,12 +11,15 @@
         <header>
             <h1>图片互动应用</h1>
             <p class="subtitle">上传两张图片，通过手势探索对比效果</p>
+            <p class="subtitle" style="font-size: 0.9em; color: #999; margin-top: 5px;">
+                💡 图片存储在您的浏览器中，刷新页面后需要重新上传
+            </p>
         </header>
 
         <!-- 上传表单 -->
         <section class="upload-section">
             <h2>上传图片</h2>
-            <form id="uploadForm" enctype="multipart/form-data">
+            <form id="uploadForm">
                 <div class="form-group">
                     <label for="image1">第一张图片（背景图）</label>
                     <input type="file" id="image1" name="image1" accept="image/*" required>
@@ -35,25 +38,15 @@
                 </div>
                 
                 <button type="submit" class="btn-primary" id="uploadBtn">
-                    <span class="btn-text">上传并查看</span>
-                    <span class="btn-loading" style="display: none;">上传中...</span>
+                    <span class="btn-text">开始展示</span>
+                    <span class="btn-loading" style="display: none;">处理中...</span>
                 </button>
             </form>
             <div id="errorMessage" class="error-message" style="display: none;"></div>
         </section>
-
-        <!-- 历史记录 -->
-        <section class="history-section">
-            <h2>历史记录</h2>
-            <div id="historyLoading" class="loading">加载中...</div>
-            <div id="historyContainer" class="history-grid" style="display: none;"></div>
-            <div id="historyEmpty" class="empty-state" style="display: none;">
-                暂无历史记录，开始上传您的第一组图片吧！
-            </div>
-        </section>
     </div>
 
-    <script src="{{ url_for('static', filename='js/hand_tracking.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/image_storage.js') }}"></script>
     <script>
         // 图片预览
         document.getElementById('image1').addEventListener('change', function(e) {
@@ -83,6 +76,12 @@
         // 压缩图片函数
         function compressImage(file, maxWidth = 1920, quality = 0.85) {
             return new Promise((resolve) => {
+                // 如果文件小于2MB，直接使用
+                if (file.size < 2 * 1024 * 1024) {
+                    resolve(file);
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = function(e) {
@@ -93,10 +92,13 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        // 如果图片太大，等比例缩放
+                        // 等比例缩放
                         if (width > maxWidth) {
                             height = (height * maxWidth) / width;
                             width = maxWidth;
+                        } else if (height > maxWidth) {
+                            width = (width * maxWidth) / height;
+                            height = maxWidth;
                         }
                         
                         canvas.width = width;
@@ -111,7 +113,7 @@
             });
         }
 
-        // 表单提交
+        // 表单提交 - 直接在浏览器处理，不经过服务器
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -124,138 +126,47 @@
             uploadBtn.disabled = true;
             btnText.style.display = 'none';
             btnLoading.style.display = 'inline';
-            btnLoading.textContent = '正在压缩图片...';
+            btnLoading.textContent = '正在处理图片...';
             
             try {
-                const formData = new FormData();
                 const image1File = document.getElementById('image1').files[0];
                 const image2File = document.getElementById('image2').files[0];
-                const description = document.getElementById('description').value;
+                const description = document.getElementById('description').value.trim();
                 
                 if (!image1File || !image2File) {
                     throw new Error('请选择两张图片');
                 }
-                
-                // 压缩图片
+
+                // 检查文件大小
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (image1File.size > maxSize || image2File.size > maxSize) {
+                    throw new Error('图片文件太大，单张图片最大10MB');
+                }
+
+                // 压缩图片（如果需要）
                 btnLoading.textContent = '正在压缩图片...';
                 const [compressed1, compressed2] = await Promise.all([
                     compressImage(image1File),
                     compressImage(image2File)
                 ]);
+
+                // 保存到浏览器存储
+                btnLoading.textContent = '正在保存...';
+                await imageStorage.init();
+                const pairId = await imageStorage.saveImagePair(compressed1, compressed2, description);
+
+                // 跳转到展示页面
+                window.location.href = `/display?id=${pairId}`;
                 
-                // 添加到FormData
-                formData.append('image1', compressed1, 'image1.jpg');
-                formData.append('image2', compressed2, 'image2.jpg');
-                if (description) {
-                    formData.append('description', description);
-                }
-                
-                // 上传
-                btnLoading.textContent = '正在上传...';
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    errorMessage.textContent = data.error || '上传失败，请重试';
-                    errorMessage.style.display = 'block';
-                    uploadBtn.disabled = false;
-                    btnText.style.display = 'inline';
-                    btnLoading.style.display = 'none';
-                }
             } catch (error) {
-                errorMessage.textContent = '上传失败：' + error.message;
+                console.error('Error:', error);
+                errorMessage.textContent = '处理失败：' + error.message;
                 errorMessage.style.display = 'block';
                 uploadBtn.disabled = false;
                 btnText.style.display = 'inline';
                 btnLoading.style.display = 'none';
             }
         });
-
-        // 加载历史记录
-        async function loadHistory() {
-            const loading = document.getElementById('historyLoading');
-            const container = document.getElementById('historyContainer');
-            const empty = document.getElementById('historyEmpty');
-            
-            try {
-                const response = await fetch('/api/history');
-                const data = await response.json();
-                
-                loading.style.display = 'none';
-                
-                if (data.pairs && data.pairs.length > 0) {
-                    container.innerHTML = '';
-                    data.pairs.forEach(pair => {
-                        const card = createHistoryCard(pair);
-                        container.appendChild(card);
-                    });
-                    container.style.display = 'grid';
-                    empty.style.display = 'none';
-                } else {
-                    container.style.display = 'none';
-                    empty.style.display = 'block';
-                }
-            } catch (error) {
-                loading.textContent = '加载失败，请刷新页面重试';
-                container.style.display = 'none';
-                empty.style.display = 'none';
-            }
-        }
-
-        function createHistoryCard(pair) {
-            const card = document.createElement('div');
-            card.className = 'history-card';
-            
-            const createdAt = new Date(pair.created_at).toLocaleString('zh-CN');
-            
-            card.innerHTML = `
-                <div class="card-image">
-                    <img src="${pair.image1_url}" alt="预览图" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E'">
-                </div>
-                <div class="card-info">
-                    <div class="card-time">${createdAt}</div>
-                    ${pair.description ? `<div class="card-desc">${pair.description}</div>` : ''}
-                </div>
-                <div class="card-actions">
-                    <a href="${pair.display_url}" class="btn-view">查看</a>
-                    <button class="btn-delete" onclick="deletePair('${pair.pair_id}')">删除</button>
-                </div>
-            `;
-            
-            return card;
-        }
-
-        async function deletePair(pairId) {
-            if (!confirm('确定要删除这个图片对吗？')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/pair/${pairId}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    loadHistory();
-                } else {
-                    alert('删除失败：' + (data.error || '未知错误'));
-                }
-            } catch (error) {
-                alert('删除失败：' + error.message);
-            }
-        }
-
-        // 页面加载时加载历史记录
-        window.addEventListener('DOMContentLoaded', loadHistory);
     </script>
 </body>
 </html>
-

@@ -27,15 +27,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js"></script>
     
-    <script>
-        // 图片对数据
-        const pairData = {
-            pairId: '{{ pair.pair_id }}',
-            image1: '{{ url_for("static", filename="uploads/" + pair.image1) }}',
-            image2: '{{ url_for("static", filename="uploads/" + pair.image2) }}'
-        };
-    </script>
+    <script src="{{ url_for('static', filename='js/image_storage.js') }}"></script>
     <script src="{{ url_for('static', filename='js/hand_tracking.js') }}"></script>
 </body>
 </html>
-

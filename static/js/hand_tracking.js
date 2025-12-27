@@ -26,9 +26,9 @@ async function initHandTracking() {
     }
     
     try {
-        // 加载图片
+        // 从浏览器存储加载图片
         showStatus('正在加载图片...', 'info');
-        await loadImages();
+        await loadImagesFromStorage();
         
         // 初始化MediaPipe Hands
         showStatus('正在初始化手部识别...', 'info');
@@ -88,8 +88,21 @@ async function initHandTracking() {
     }
 }
 
-// 加载图片
-function loadImages() {
+// 从浏览器存储加载图片
+async function loadImagesFromStorage() {
+    // 从URL参数获取图片对ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const pairId = urlParams.get('id');
+    
+    if (!pairId) {
+        throw new Error('缺少图片ID参数');
+    }
+
+    // 从 IndexedDB 加载图片对
+    await imageStorage.init();
+    const imagePair = await imageStorage.getImagePair(pairId);
+    
+    // 加载图片
     return new Promise((resolve, reject) => {
         let loadedCount = 0;
         
@@ -106,11 +119,11 @@ function loadImages() {
         
         backgroundImage.onload = onImageLoad;
         backgroundImage.onerror = () => reject(new Error('背景图片加载失败'));
-        backgroundImage.src = typeof pairData !== 'undefined' ? pairData.image1 : '';
+        backgroundImage.src = imagePair.image1;
         
         overlayImage.onload = onImageLoad;
         overlayImage.onerror = () => reject(new Error('叠加图片加载失败'));
-        overlayImage.src = typeof pairData !== 'undefined' ? pairData.image2 : '';
+        overlayImage.src = imagePair.image2;
     });
 }
 
