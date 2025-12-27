@@ -39,7 +39,23 @@ nano .env
 SECRET_KEY=your-random-secret-key-here
 ```
 
-4. **启动服务**
+4. **使用部署脚本启动服务（推荐）**
+
+```bash
+# 赋予执行权限（首次使用）
+chmod +x deploy.sh
+
+# 执行部署
+./deploy.sh
+
+# 或强制重新构建
+./deploy.sh --force
+
+# 部署后查看日志
+./deploy.sh --logs
+```
+
+**或使用 docker-compose 命令：**
 
 ```bash
 # 构建并启动容器（后台运行）

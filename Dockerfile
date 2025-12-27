@@ -29,6 +29,6 @@ ENV PYTHONUNBUFFERED=1
 # 暴露端口
 EXPOSE 5000
 
-# 启动命令
-CMD ["python", "run.py"]
+# 启动命令 - 使用Gunicorn生产服务器
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
 

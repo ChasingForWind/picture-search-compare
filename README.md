@@ -39,7 +39,39 @@ flask run
 
 ### Docker部署
 
-#### 方式一：使用 docker-compose（推荐）
+#### 方式一：使用部署脚本（推荐）
+
+**Linux/macOS:**
+```bash
+# 赋予执行权限（首次使用）
+chmod +x deploy.sh
+
+# 普通部署
+./deploy.sh
+
+# 强制重新构建
+./deploy.sh --force
+
+# 部署后查看日志
+./deploy.sh --logs
+
+# 查看帮助
+./deploy.sh --help
+```
+
+**Windows:**
+```powershell
+# 普通部署
+.\deploy.ps1
+
+# 强制重新构建
+.\deploy.ps1 -Force
+
+# 部署后查看日志
+.\deploy.ps1 -Logs
+```
+
+#### 方式二：使用 docker-compose 命令
 
 1. 确保已安装 docker-compose
 

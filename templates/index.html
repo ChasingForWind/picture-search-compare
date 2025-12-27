@@ -80,11 +80,41 @@
             }
         }
 
+        // 压缩图片函数
+        function compressImage(file, maxWidth = 1920, quality = 0.85) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // 如果图片太大，等比例缩放
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob(resolve, 'image/jpeg', quality);
+                    };
+                };
+            });
+        }
+
         // 表单提交
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
             const uploadBtn = document.getElementById('uploadBtn');
             const btnText = uploadBtn.querySelector('.btn-text');
             const btnLoading = uploadBtn.querySelector('.btn-loading');
@@ -94,8 +124,34 @@
             uploadBtn.disabled = true;
             btnText.style.display = 'none';
             btnLoading.style.display = 'inline';
+            btnLoading.textContent = '正在压缩图片...';
             
             try {
+                const formData = new FormData();
+                const image1File = document.getElementById('image1').files[0];
+                const image2File = document.getElementById('image2').files[0];
+                const description = document.getElementById('description').value;
+                
+                if (!image1File || !image2File) {
+                    throw new Error('请选择两张图片');
+                }
+                
+                // 压缩图片
+                btnLoading.textContent = '正在压缩图片...';
+                const [compressed1, compressed2] = await Promise.all([
+                    compressImage(image1File),
+                    compressImage(image2File)
+                ]);
+                
+                // 添加到FormData
+                formData.append('image1', compressed1, 'image1.jpg');
+                formData.append('image2', compressed2, 'image2.jpg');
+                if (description) {
+                    formData.append('description', description);
+                }
+                
+                // 上传
+                btnLoading.textContent = '正在上传...';
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -108,11 +164,13 @@
                 } else {
                     errorMessage.textContent = data.error || '上传失败，请重试';
                     errorMessage.style.display = 'block';
+                    uploadBtn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnLoading.style.display = 'none';
                 }
             } catch (error) {
                 errorMessage.textContent = '上传失败：' + error.message;
                 errorMessage.style.display = 'block';
-            } finally {
                 uploadBtn.disabled = false;
                 btnText.style.display = 'inline';
                 btnLoading.style.display = 'none';
