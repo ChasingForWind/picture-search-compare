@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  picture-search:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: picture-search-app
+    ports:
+      - "5000:5000"
+    volumes:
+      # 持久化上传的图片数据
+      - ./static/uploads:/app/static/uploads
+    environment:
+      - FLASK_APP=app
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 5000), timeout=2)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

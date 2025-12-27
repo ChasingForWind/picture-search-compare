@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片互动展示</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="display-container">
+        <h1>图片互动展示</h1>
+        
+        <div class="video-container">
+            <video id="videoElement" autoplay playsinline></video>
+            <canvas id="displayCanvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <a href="{{ url_for('main.index') }}" class="btn-back">返回首页</a>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js"></script>
+    
+    <script>
+        // 图片对数据
+        const pairData = {
+            pairId: '{{ pair.pair_id }}',
+            image1: '{{ url_for("static", filename="uploads/" + pair.image1) }}',
+            image2: '{{ url_for("static", filename="uploads/" + pair.image2) }}'
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/hand_tracking.js') }}"></script>
+</body>
+</html>
+
