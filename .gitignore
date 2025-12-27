@@ -15,6 +15,11 @@ eggs/
 .eggs/
 lib/
 lib64/
+# 但允许提交 MediaPipe 库
+!static/
+!static/lib/
+!static/lib/mediapipe/
+!static/lib/mediapipe/**
 parts/
 sdist/
 var/

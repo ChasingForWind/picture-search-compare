@@ -54,11 +54,12 @@
         ];
 
         // 加载脚本的函数
-        function loadScript(src) {
+        function loadScript(src, timeout = 30000) { // 增加超时时间到30秒
             return new Promise((resolve, reject) => {
                 // 检查是否已经加载过
                 const existingScript = document.querySelector(`script[src="${src}"]`);
                 if (existingScript) {
+                    console.log(`脚本已存在: ${src}`);
                     resolve();
                     return;
                 }
@@ -66,12 +67,21 @@
                 const script = document.createElement('script');
                 script.src = src;
                 script.async = false;
+                
+                // 设置超时
+                const timer = setTimeout(() => {
+                    script.remove();
+                    reject(new Error(`加载超时 (${timeout / 1000}s): ${src}`));
+                }, timeout);
+                
                 script.onload = () => {
-                    console.log(`成功加载: ${src}`);
+                    clearTimeout(timer);
+                    console.log(`✅ 成功加载: ${src}`);
                     resolve();
                 };
                 script.onerror = () => {
-                    console.error(`加载失败: ${src}`);
+                    clearTimeout(timer);
+                    console.error(`❌ 加载失败: ${src}`);
                     script.remove();
                     reject(new Error(`加载失败: ${src}`));
                 };
