@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: picture-search-app
     ports:
-      - "5000:5000"
+      - "5005:5000"  # 外部端口:容器内端口
     volumes:
       # 持久化上传的图片数据
       - ./static/uploads:/app/static/uploads

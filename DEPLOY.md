@@ -54,7 +54,9 @@ docker-compose ps
 
 5. **访问应用**
 
-打开浏览器访问：`http://your-server-ip:5000`
+打开浏览器访问：`http://your-server-ip:5005`
+
+> 注意：如果 5005 端口也被占用，可以在 `docker-compose.yml` 中将端口映射改为其他端口，例如 `8888:5000`
 
 ### 常用命令
 
@@ -115,7 +117,7 @@ server {
     client_max_body_size 10M;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5005;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -129,7 +131,7 @@ server {
 
     # 静态文件缓存
     location /static/ {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5005;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
@@ -195,9 +197,9 @@ docker-compose exec picture-search bash
 
 4. **检查端口占用**
 ```bash
-sudo netstat -tlnp | grep 5000
+sudo netstat -tlnp | grep 5005
 # 或
-sudo ss -tlnp | grep 5000
+sudo ss -tlnp | grep 5005
 ```
 
 5. **重启服务**

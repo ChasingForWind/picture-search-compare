@@ -64,7 +64,7 @@ docker-compose down
 ```
 
 6. 访问应用：
-打开浏览器访问 `http://localhost:5000`
+打开浏览器访问 `http://localhost:5005`
 
 #### 方式二：使用 Docker 命令
 
@@ -75,7 +75,7 @@ docker build -t picture-search .
 
 2. 运行容器：
 ```bash
-docker run -d -p 5000:5000 \
+docker run -d -p 5005:5000 \
   -v $(pwd)/static/uploads:/app/static/uploads \
   --name picture-search-app \
   --restart unless-stopped \
@@ -83,7 +83,7 @@ docker run -d -p 5000:5000 \
 ```
 
 3. 访问应用：
-打开浏览器访问 `http://localhost:5000`
+打开浏览器访问 `http://localhost:5005`
 
 ### 阿里云部署
 
