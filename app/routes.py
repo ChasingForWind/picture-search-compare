@@ -15,7 +15,11 @@ def get_pair_manager():
 @bp.route('/')
 def index():
     """上传页面"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        current_app.logger.error(f"Error rendering index.html: {e}")
+        return f"Error loading page: {str(e)}", 500
 
 @bp.route('/upload', methods=['POST'])
 def upload():

@@ -14,9 +14,17 @@ class PairManager:
     
     def _ensure_file_exists(self):
         """确保pairs.json文件存在"""
-        if not os.path.exists(self.pairs_file):
-            with open(self.pairs_file, 'w', encoding='utf-8') as f:
-                json.dump({"pairs": []}, f, ensure_ascii=False, indent=2)
+        try:
+            # 确保目录存在
+            pairs_file_dir = os.path.dirname(self.pairs_file)
+            if pairs_file_dir:
+                os.makedirs(pairs_file_dir, exist_ok=True)
+            
+            if not os.path.exists(self.pairs_file):
+                with open(self.pairs_file, 'w', encoding='utf-8') as f:
+                    json.dump({"pairs": []}, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error ensuring pairs.json exists: {e}")
     
     def load_pairs(self) -> List[Dict]:
         """加载所有图片对"""

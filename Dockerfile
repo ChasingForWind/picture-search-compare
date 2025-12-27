@@ -22,7 +22,7 @@ COPY . .
 RUN mkdir -p static/uploads/images
 
 # 设置环境变量
-ENV FLASK_APP=app
+ENV FLASK_APP=run:app
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
@@ -30,5 +30,5 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 
 # 启动命令
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]
+CMD ["python", "run.py"]
 
