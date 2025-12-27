@@ -10,6 +10,37 @@ let overlayImage = null;
 let isImagesLoaded = false;
 let lastHandPosition = null;
 
+// 等待MediaPipe库加载完成
+async function waitForMediaPipe() {
+    return new Promise((resolve, reject) => {
+        // 如果已经加载，直接返回
+        if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const checkInterval = setInterval(() => {
+            // 检查MediaPipe类是否已加载
+            if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+                clearInterval(checkInterval);
+                resolve();
+            }
+        }, 50);
+        
+        // 设置超时，最多等待10秒
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            if (typeof Hands === 'undefined') {
+                reject(new Error('MediaPipe Hands 库加载超时，请检查网络连接。如果问题持续，请尝试刷新页面。'));
+            } else if (typeof Camera === 'undefined') {
+                reject(new Error('MediaPipe Camera 库加载超时，请检查网络连接。如果问题持续，请尝试刷新页面。'));
+            } else {
+                resolve();
+            }
+        }, 10000);
+    });
+}
+
 // 初始化函数
 async function initHandTracking() {
     canvas = document.getElementById('displayCanvas');
@@ -26,6 +57,16 @@ async function initHandTracking() {
     }
     
     try {
+        // 等待MediaPipe库加载完成
+        showStatus('正在加载MediaPipe库...', 'info');
+        await waitForMediaPipe();
+        
+        // 检查是否在HTTPS或localhost环境下
+        const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isSecure && !navigator.mediaDevices) {
+            throw new Error('摄像头访问需要HTTPS环境。请在HTTPS或localhost下访问。');
+        }
+        
         // 从浏览器存储加载图片
         showStatus('正在加载图片...', 'info');
         await loadImagesFromStorage();
@@ -49,42 +90,64 @@ async function initHandTracking() {
         
         // 请求摄像头权限
         showStatus('正在请求摄像头权限...', 'info');
+        
+        // 检查媒体设备API
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('您的浏览器不支持摄像头访问。请使用Chrome、Firefox、Edge等现代浏览器。');
+        }
+        
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: 'user',
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             }
+        }).catch(err => {
+            console.error('摄像头访问错误:', err);
+            if (err.name === 'NotAllowedError') {
+                throw new Error('摄像头权限被拒绝。请在浏览器设置中允许摄像头访问，然后刷新页面。');
+            } else if (err.name === 'NotFoundError') {
+                throw new Error('未找到摄像头设备。请确保您的设备有可用的摄像头。');
+            } else if (err.name === 'NotReadableError') {
+                throw new Error('摄像头被其他应用占用。请关闭其他使用摄像头的应用后重试。');
+            } else {
+                throw new Error('无法访问摄像头: ' + err.message);
+            }
         });
         
         video.srcObject = stream;
         
-        video.addEventListener('loadedmetadata', () => {
-            // 设置canvas尺寸匹配视频
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            // 启动摄像头处理
-            camera = new Camera(video, {
-                onFrame: async () => {
-                    await hands.send({ image: video });
-                },
-                width: video.videoWidth,
-                height: video.videoHeight
-            });
-            
-            camera.start();
-            
-            // 隐藏状态消息
-            statusMessage.style.display = 'none';
-            
-            // 开始绘制循环
-            drawLoop();
+        // 等待视频元数据加载
+        await new Promise((resolve) => {
+            video.addEventListener('loadedmetadata', () => {
+                resolve();
+            }, { once: true });
         });
+        
+        // 设置canvas尺寸匹配视频
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // 启动摄像头处理
+        camera = new Camera(video, {
+            onFrame: async () => {
+                await hands.send({ image: video });
+            },
+            width: video.videoWidth,
+            height: video.videoHeight
+        });
+        
+        camera.start();
+        
+        // 隐藏状态消息
+        statusMessage.style.display = 'none';
+        
+        // 开始绘制循环
+        drawLoop();
         
     } catch (error) {
         console.error('初始化失败:', error);
-        showStatus('初始化失败: ' + error.message + '。请确保允许摄像头权限。', 'error');
+        showStatus('初始化失败: ' + error.message, 'error');
     }
 }
 
