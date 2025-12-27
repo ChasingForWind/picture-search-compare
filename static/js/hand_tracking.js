@@ -88,19 +88,13 @@ async function initHandTracking() {
         // 初始化MediaPipe Hands
         showStatus('正在初始化手部识别...', 'info');
         
-        // 根据使用的CDN确定资源路径
-        const cdnName = window.mediapipeCDN || 'jsdelivr';
-        let baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/';
-        
-        if (cdnName === 'unpkg') {
-            baseUrl = 'https://unpkg.com/@mediapipe/hands@0.4.1675469404/';
-        } else if (cdnName === 'cdnjs') {
-            baseUrl = 'https://cdnjs.cloudflare.com/ajax/libs/mediapipe-hands/0.4.1675469404/';
-        }
+        // 使用之前加载时设置的baseUrl（本地或CDN）
+        const baseUrl = window.mediapipeBaseUrl || 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/';
         
         hands = new Hands({
             locateFile: (file) => {
-                return baseUrl + file;
+                // 如果baseUrl以/结尾，直接拼接；否则添加/
+                return baseUrl.endsWith('/') ? baseUrl + file : baseUrl + '/' + file;
             }
         });
         

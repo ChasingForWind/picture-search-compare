@@ -24,21 +24,32 @@
 
     <script src="{{ url_for('static', filename='js/image_storage.js') }}"></script>
     
-    <!-- MediaPipe Hands - 使用脚本加载器，支持多个CDN备选 -->
+    <!-- MediaPipe Hands - 优先使用本地文件，失败则尝试CDN -->
     <script>
-        // MediaPipe库的CDN地址（多个备选）
+        // MediaPipe库的本地路径（优先使用）
+        const MEDIAPIPE_LOCAL = {
+            name: 'local',
+            hands: "{{ url_for('static', filename='lib/mediapipe/hands.js') }}",
+            camera: "{{ url_for('static', filename='lib/mediapipe/camera_utils.js') }}",
+            drawing: "{{ url_for('static', filename='lib/mediapipe/drawing_utils.js') }}",
+            baseUrl: "{{ url_for('static', filename='lib/mediapipe/') }}"
+        };
+        
+        // MediaPipe库的CDN地址（备选）
         const MEDIAPIPE_CDNS = [
             {
                 name: 'jsdelivr',
                 hands: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/hands.js',
                 camera: 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js',
-                drawing: 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js'
+                drawing: 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js',
+                baseUrl: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/'
             },
             {
                 name: 'unpkg',
                 hands: 'https://unpkg.com/@mediapipe/hands@0.4.1675469404/hands.js',
                 camera: 'https://unpkg.com/@mediapipe/camera_utils@0.3.1675466867/camera_utils.js',
-                drawing: 'https://unpkg.com/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js'
+                drawing: 'https://unpkg.com/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js',
+                baseUrl: 'https://unpkg.com/@mediapipe/hands@0.4.1675469404/'
             }
         ];
 
@@ -68,8 +79,27 @@
             });
         }
 
-        // 尝试从多个CDN加载MediaPipe
+        // 尝试加载MediaPipe（优先本地，失败则尝试CDN）
         async function loadMediaPipe() {
+            // 首先尝试本地文件
+            try {
+                console.log('尝试从本地加载 MediaPipe 库...');
+                await Promise.all([
+                    loadScript(MEDIAPIPE_LOCAL.hands),
+                    loadScript(MEDIAPIPE_LOCAL.camera),
+                    loadScript(MEDIAPIPE_LOCAL.drawing)
+                ]);
+                console.log('✅ 成功从本地加载 MediaPipe');
+                window.mediapipeCDN = 'local';
+                window.mediapipeBaseUrl = MEDIAPIPE_LOCAL.baseUrl;
+                window.mediapipeLoaded = true;
+                return;
+            } catch (error) {
+                console.warn('❌ 本地MediaPipe库加载失败，将尝试CDN:', error.message);
+                console.warn('提示：如果您已下载MediaPipe库，请确保文件放置在 static/lib/mediapipe/ 目录下');
+            }
+            
+            // 本地加载失败，尝试CDN
             for (const cdn of MEDIAPIPE_CDNS) {
                 try {
                     console.log(`尝试从 ${cdn.name} CDN 加载 MediaPipe...`);
@@ -80,6 +110,7 @@
                     ]);
                     console.log(`✅ 成功从 ${cdn.name} CDN 加载 MediaPipe`);
                     window.mediapipeCDN = cdn.name;
+                    window.mediapipeBaseUrl = cdn.baseUrl;
                     window.mediapipeLoaded = true;
                     return;
                 } catch (error) {
@@ -87,7 +118,9 @@
                     // 继续尝试下一个CDN
                 }
             }
-            throw new Error('所有CDN都无法加载MediaPipe库。请检查网络连接，或联系管理员。');
+            
+            // 所有加载方式都失败
+            throw new Error('无法加载MediaPipe库。\n\n解决方案：\n1. 下载MediaPipe库到本地（推荐）：\n   运行脚本: python scripts/download_mediapipe.py\n   或手动下载到: static/lib/mediapipe/\n\n2. 检查网络连接，确保可以访问CDN\n\n3. 如果问题持续，请查看下载说明: MEDIAPIPE_DOWNLOAD.md');
         }
 
         // 开始加载MediaPipe

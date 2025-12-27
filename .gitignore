@@ -41,3 +41,10 @@ Thumbs.db
 # Project specific
 # 不再需要上传目录（图片存储在浏览器中）
 
+# MediaPipe库文件（文件较大，不提交到Git）
+static/lib/mediapipe/
+*.wasm
+*.tflite
+*.data
+*.binarypb
+
